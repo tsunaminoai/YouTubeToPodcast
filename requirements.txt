@@ -1,0 +1,2 @@
+feedgen >= 0.3.2
+youtube-dl >= 2016.8.22
