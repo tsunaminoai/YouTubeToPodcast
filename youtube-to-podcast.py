@@ -17,7 +17,6 @@ def api_loop(cache,ytkey,listid):
 	urlBase = url
 	#loop through all of the playlist items from the API
 	while True:
-		print 'fetching %s' % url
 
 		#get the API call
 		response = urllib.urlopen(url)
