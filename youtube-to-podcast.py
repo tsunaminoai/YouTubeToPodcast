@@ -37,7 +37,6 @@ def api_loop(cache,ytkey,listid):
 		#API pagenates the results, so process next pages as we get to them
 		if 'nextPageToken' in data:
 			url = urlBase + '&pageToken=' + data['nextPageToken']
-			print data['nextPageToken']
 		else:
 			break
 
@@ -148,7 +147,6 @@ def main():
 
 	if config.has_section('system'):
 		defaults = dict(config._sections['system'])
-		print defaults
 	else:
 		print "No 'System' section found in config file. Exiting."
 		exit ()
