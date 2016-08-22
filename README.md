@@ -26,3 +26,12 @@ After you have your key, copy config.ini.dist to config.ini and edit as necessar
 The tool can me configured with multiple playlists to monitor. Just add additional playlist blocks to the config.
 
 You may want to run the tool on a cron to download the latest additions to the configured playlists.
+
+####Output####
+
+The tool downloads the playlist via the API and then runs through each video. If it has not done so previously, it will download the video and convert to mp3. A feed.xml file is placed into the playlist output directory.
+
+To add the podcast to your device, simply subscribe to a url defined as 
+```
+http://<baseurl>/<playlist block name>/feed.xml
+```
