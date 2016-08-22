@@ -1,0 +1,36 @@
+# main configuration block. this must exist
+[system]
+
+# the youtube API key
+ytAPI =
+
+# the directoy base where directories and files will be saved
+outputDir = output
+
+# url base for http access to the files
+# (where is outputDir in relation to the webroot)
+urlBase = http://localhost/
+
+
+# Playlist sections
+
+# the header defines the name for folders
+#[testlist]
+
+#the youtube playlist ID
+#listID =
+
+# the podcast main category. must exist in iTunes' list
+# https://gist.github.com/skattyadz/814315
+#category = Technology
+
+# the podcast sub category. must exist in iTunes' list
+# https://gist.github.com/skattyadz/814315
+#subcategory = Podcasting
+
+# the title for the podcast
+#title = some title
+
+# the description for the podcast
+#description = test podcast
+
