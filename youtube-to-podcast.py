@@ -2,7 +2,10 @@
 
 from __future__ import unicode_literals
 from feedgen.feed import FeedGenerator
+from mutagen.mp3 import MP3
+from mutagen import MutagenError
 
+import mutagen.id3
 import ConfigParser
 import os
 import sys
@@ -42,11 +45,74 @@ def api_loop(cache,ytkey,listid):
 
 	return cache
 
+def tag_file(tags,mp3file):
+
+	#try and open the file
+	try:
+		audio = MP3(mp3file)
+	except MutagenError:
+		pass
+
+	#title
+	audio.tags.add(mutagen.id3.TIT2(
+		text=tags['vidinfo']['title']))
+	#album
+	audio.tags.add(mutagen.id3.TALB(
+		text=tags['title']))
+
+	#date
+	audio.tags.add(mutagen.id3.TRDA(
+		text=tags['vidinfo']['publishedAt']))
+
+	#artist
+	audio.tags.add(mutagen.id3.TPE1(
+		text=tags['vidinfo']['channelTitle']))
+
+	#genre
+	audio.tags.add(mutagen.id3.TCON(
+		text=tags['category']))
+
+	#website
+	audio.tags.add(mutagen.id3.WOAR(
+		url= 'https://youtube.com/watch?v={}'.format(
+			tags['vidinfo']['resourceId']['videoId'])
+		))
+
+	#length in ms
+	audio.tags.add(mutagen.id3.TLEN(
+		text=str(int(audio.info.length*1000))
+			))
+
+	#add comment
+	audio.tags.add(
+		mutagen.id3.COMM(
+			lang='eng',
+			desc='',
+			text=tags['vidinfo']['description']
+			)
+		)
+
+	#podcast flag
+	audio.tags.add(mutagen.id3.PCST(value = 1))
+
+	#use vid thumbnail as cover art
+	audio.tags.add(
+		mutagen.id3.APIC(
+			encoding=3, # 3 is for utf-8
+			mime='image/jpeg', # image/jpeg or image/png
+			type=3, # 3 is for the cover image
+			desc=u'Cover',
+			data=open(tags['basename']+'.jpg').read()
+		)
+	)
+	audio.save()
+
+
 
 def process_playlist(defaults,playlistConf):
 
 	conf = dict(playlistConf)
-
+	tags = conf
 	plpath = defaults['outputdir'] + '/' + conf['__name__']
 
 	if not os.path.exists(plpath):
@@ -63,7 +129,7 @@ def process_playlist(defaults,playlistConf):
 		with gzip.open(plpath + '/.cache.json.gz','rb') as f:
 			allitems = json.loads(f.read().decode('ascii'))
 	except IOError:
-		print 'No file for playlist. Creating new one'
+		print 'No cache file for playlist. Creating new one'
 		allitems = dict()
 
 
@@ -83,12 +149,16 @@ def process_playlist(defaults,playlistConf):
 
 	for key, item in allitems.iteritems():
 		s = item['snippet']
+
+		tags['vidinfo'] = s
+
 		publishedAt =  s['publishedAt']
 		title = s['title']
 		description = s['description']
 		thumbnail =  s['thumbnails']['default']['url']
 		vidId = s['resourceId']['videoId']
 
+		tags['basename'] = '{}/{}'.format(plpath,vidId)
 
 
 		fe = fg.add_entry()
@@ -114,7 +184,7 @@ def process_playlist(defaults,playlistConf):
 				'preferredquality': '192',
 			}],
 			'writeinfojson': False,
-			'writethumbnail': False,
+			'writethumbnail': True,
 			'outtmpl': r'{}/%(id)s.%(exts)s'.format(plpath),
 		}
 
@@ -122,6 +192,7 @@ def process_playlist(defaults,playlistConf):
 			with youtube_dl.YoutubeDL(ydl_opts) as ydl:
 				ydl.download(['https://www.youtube.com/watch?v=%s' % (vidId)])
 				allitems[key]['downloaded'] = True;
+				tag_file(tags,'{}/{}.mp3'.format(plpath,vidId))
 
 		except youtube_dl.utils.DownloadError:
 			print "[Error] Video id %s \"%s\" does not exist." % (vidId, title)
