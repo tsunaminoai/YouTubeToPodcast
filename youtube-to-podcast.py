@@ -6,6 +6,7 @@ from mutagen.mp3 import MP3
 from mutagen import MutagenError
 from collections import OrderedDict
 
+import dateutil.parser
 import mutagen.id3
 import ConfigParser
 import os
@@ -72,8 +73,9 @@ def tag_file(tags,mp3file):
 		text=tags['title']))
 
 	#date
-	audio.tags.add(mutagen.id3.TRDA(
-		text=tags['vidinfo']['publishedAt']))
+	d = dateutil.parser.parse(tags['vidinfo']['publishedAt'])
+	audio.tags.add(mutagen.id3.TDRC(
+		text=d.strftime('%Y-%m-%d %H:%M:%S')))
 
 	#artist
 	audio.tags.add(mutagen.id3.TPE1(
@@ -82,6 +84,10 @@ def tag_file(tags,mp3file):
 	#genre
 	audio.tags.add(mutagen.id3.TCON(
 		text=tags['category']))
+
+	#track
+	audio.tags.add(mutagen.id3.TRCK(
+		text=str(tags['vidinfo']['position'] + 1)))
 
 	#website
 	audio.tags.add(mutagen.id3.WOAR(
@@ -196,9 +202,9 @@ def process_playlist(defaults,playlistConf):
 
 		try:
 			with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-				if ydl.download(['https://www.youtube.com/watch?v=%s' % (vidId)]):
-					allitems[key]['downloaded'] = True;
-					tag_file(tags,'{}/{}.mp3'.format(plpath,vidId))
+				ydl.download(['https://www.youtube.com/watch?v=%s' % (vidId)])
+				allitems[key]['downloaded'] = True;
+				tag_file(tags,'{}/{}.mp3'.format(plpath,vidId))
 
 		except youtube_dl.utils.DownloadError:
 			print "[Error] Video id %s \"%s\" does not exist." % (vidId, title)
