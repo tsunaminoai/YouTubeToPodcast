@@ -148,26 +148,20 @@ def process_playlist(defaults,playlistConf):
 
 
 	for key, item in allitems.iteritems():
-		s = item['snippet']
+		tags['vidinfo'] = item['snippet']
 
-		tags['vidinfo'] = s
-
-		publishedAt =  s['publishedAt']
-		title = s['title']
-		description = s['description']
-		thumbnail =  s['thumbnails']['default']['url']
-		vidId = s['resourceId']['videoId']
+		vidId = tags['vidinfo']['resourceId']['videoId']
 
 		tags['basename'] = '{}/{}'.format(plpath,vidId)
 
 
 		fe = fg.add_entry()
 		fe.id(vidId)
-		fe.title(s['title'])
-		fe.description(s['description'])
+		fe.title(tags['vidinfo']['title'])
+		fe.description(tags['vidinfo']['description'])
 		fe.enclosure(defaults['urlbase'] + conf['__name__'] + \
 			'/' + vidId +'.mp3',0,'audio/mpeg')
-		fe.published(s['publishedAt'])
+		fe.published(tags['vidinfo']['publishedAt'])
 
 		#skip downloading if we've already downloaded this one
 		if 'downloaded' in item and item['downloaded'] is True:
