@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 from feedgen.feed import FeedGenerator
 from mutagen.mp3 import MP3
 from mutagen import MutagenError
+from collections import OrderedDict
 
 import mutagen.id3
 import ConfigParser
@@ -44,6 +45,16 @@ def api_loop(cache,ytkey,listid):
 			break
 
 	return cache
+
+def sortByPosition(cache):
+	return OrderedDict(
+			sorted(
+				cache.items(),
+				key=lambda x: x[1]['snippet']['position'],
+				reverse=True
+				)
+		)
+
 
 def tag_file(tags,mp3file):
 
@@ -137,7 +148,8 @@ def process_playlist(defaults,playlistConf):
 	#do the main loop
 	allitems = api_loop(allitems,defaults['ytapi'],conf['listid'])
 
-
+	#sort the items by playlist position
+	allitems = sortByPosition(allitems)
 
 	fg = FeedGenerator()
 	fg.load_extension('podcast')
@@ -168,7 +180,7 @@ def process_playlist(defaults,playlistConf):
 			continue
 
 		ydl_opts = {
-			'simulate': False,
+			'simulate': True,
 			'quiet': True,
 			'nooverwrites': True,
 			'format': 'bestaudio/best',
@@ -184,14 +196,15 @@ def process_playlist(defaults,playlistConf):
 
 		try:
 			with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-				ydl.download(['https://www.youtube.com/watch?v=%s' % (vidId)])
-				allitems[key]['downloaded'] = True;
-				tag_file(tags,'{}/{}.mp3'.format(plpath,vidId))
+				if ydl.download(['https://www.youtube.com/watch?v=%s' % (vidId)]):
+					allitems[key]['downloaded'] = True;
+					tag_file(tags,'{}/{}.mp3'.format(plpath,vidId))
 
 		except youtube_dl.utils.DownloadError:
 			print "[Error] Video id %s \"%s\" does not exist." % (vidId, title)
 
 	#write the cache out
+	print json.dumps(allitems,sort_keys = False, indent = 4)
 	with gzip.open(plpath + '/.cache.json.gz', 'wb') as f:
 	    json.dump(allitems,f)
 
