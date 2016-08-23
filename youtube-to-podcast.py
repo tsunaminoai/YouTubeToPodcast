@@ -180,7 +180,7 @@ def process_playlist(defaults,playlistConf):
 			continue
 
 		ydl_opts = {
-			'simulate': True,
+			'simulate': False,
 			'quiet': True,
 			'nooverwrites': True,
 			'format': 'bestaudio/best',
@@ -204,7 +204,6 @@ def process_playlist(defaults,playlistConf):
 			print "[Error] Video id %s \"%s\" does not exist." % (vidId, title)
 
 	#write the cache out
-	print json.dumps(allitems,sort_keys = False, indent = 4)
 	with gzip.open(plpath + '/.cache.json.gz', 'wb') as f:
 	    json.dump(allitems,f)
 
