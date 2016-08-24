@@ -189,7 +189,7 @@ def process_playlist(defaults,playlistConf):
 		ex = conf['explicit']
 	else:
 		ex = 'no'
-	fg.podcast.itunes_explicit(conf['explicit'])
+	fg.podcast.itunes_explicit(ex)
 	if 'language' in conf:
 		lan = conf['language']
 	else:
