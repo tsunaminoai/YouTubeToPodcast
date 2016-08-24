@@ -176,16 +176,27 @@ def process_playlist(defaults,playlistConf):
 
 	fg = FeedGenerator()
 	fg.load_extension('podcast')
-	fg.podcast.itunes_category(conf['category'],conf['subcategory'])
+	#fg.load_extension('syndication')
 	fg.title(conf['title'])
 	fg.description(conf['description'])
+	fg.podcast.itunes_summary(conf['description'])
+	fg.podcast.itunes_category(conf['category'],conf['subcategory'])
 	fg.link(
 		href='{}/{}/feed.xml'.format(defaults['urlbase'],conf['__name__']),
 		rel='self',
 		type='application/rss+xml')
-	print conf['explicit']
+	if 'explicit' in conf:
+		ex = conf['explicit']
+	else:
+		ex = 'no'
 	fg.podcast.itunes_explicit(conf['explicit'])
-
+	if 'language' in conf:
+		lan = conf['language']
+	else:
+		lan = 'en-US'
+	fg.language(lan)
+	#fg.syndication.update_period('hourly')
+	#fg.syndication.update_frequency(1)
 
 	for key, item in allitems.iteritems():
 		tags['vidinfo'] = item['snippet']
