@@ -17,6 +17,16 @@ import urllib
 import gzip
 
 
+#TODO add ep art function
+"""
+img_w, img_h = img.size
+background = Image.new('RGBA', (1440, 900), (255, 255, 255, 255))
+bg_w, bg_h = background.size
+offset = ((bg_w - img_w) / 2, (bg_h - img_h) / 2)
+background.paste(img, offset)
+background.save('out.png')
+"""
+
 def api_loop(cache,ytkey,listid):
 	url = 'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=%s&key=%s' % (listid , ytkey)
 	urlBase = url
@@ -205,19 +215,21 @@ def process_playlist(defaults,playlistConf):
 
 		tags['basename'] = '{}/{}'.format(plpath,vidId)
 
+		uribase = '{}/{}/{}'.format(
+				defaults['urlbase'] ,
+				conf['__name__'],
+				vidId)
 
 		fe = fg.add_entry()
 		fe.id(vidId)
 		fe.title(tags['vidinfo']['title'])
 		fe.description(tags['vidinfo']['description'])
 		fe.enclosure(
-			url='{}/{}/{}.mp3'.format(
-				defaults['urlbase'] ,
-				conf['__name__'],
-				vidId),
+			url=uribase + '.mp3',
 			length=0,
 			type='audio/mpeg')
 		fe.published(tags['vidinfo']['publishedAt'])
+		fe.podcast.itunes_image(uribase + '.jpg')
 
 		if 'duration' in tags['vidinfo']:
 			fe.podcast.itunes_duration(seconds_to_hms(tags['vidinfo']['duration']))
