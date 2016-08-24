@@ -183,6 +183,8 @@ def process_playlist(defaults,playlistConf):
 		href='{}/{}/feed.xml'.format(defaults['urlbase'],conf['__name__']),
 		rel='self',
 		type='application/rss+xml')
+	print conf['explicit']
+	fg.podcast.itunes_explicit(conf['explicit'])
 
 
 	for key, item in allitems.iteritems():

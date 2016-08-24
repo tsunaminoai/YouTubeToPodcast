@@ -34,3 +34,5 @@ urlBase = http://localhost/
 # the description for the podcast
 #description = test podcast
 
+#if this is explict. valid values are 'yes','no','clean'
+#explicit = clean
