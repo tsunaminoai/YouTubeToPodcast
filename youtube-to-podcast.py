@@ -179,7 +179,10 @@ def process_playlist(defaults,playlistConf):
 	fg.podcast.itunes_category(conf['category'],conf['subcategory'])
 	fg.title(conf['title'])
 	fg.description(conf['description'])
-	fg.link(href=defaults['urlbase'], rel='self')
+	fg.link(
+		href='{}/{}/feed.xml'.format(defaults['urlbase'],conf['__name__']),
+		rel='self',
+		type='application/rss+xml')
 
 
 	for key, item in allitems.iteritems():
@@ -194,8 +197,13 @@ def process_playlist(defaults,playlistConf):
 		fe.id(vidId)
 		fe.title(tags['vidinfo']['title'])
 		fe.description(tags['vidinfo']['description'])
-		fe.enclosure(defaults['urlbase'] + conf['__name__'] + \
-			'/' + vidId +'.mp3',0,'audio/mpeg')
+		fe.enclosure(
+			url='{}/{}/{}.mp3'.format(
+				defaults['urlbase'] ,
+				conf['__name__'],
+				vidId),
+			length=0,
+			type='audio/mpeg')
 		fe.published(tags['vidinfo']['publishedAt'])
 
 		if 'duration' in tags['vidinfo']:
