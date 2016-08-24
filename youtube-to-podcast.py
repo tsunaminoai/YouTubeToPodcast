@@ -57,6 +57,23 @@ def sortByPosition(cache):
 		)
 
 
+def seconds_to_hms(seconds):
+	m, s = divmod(seconds, 60)
+	h, m = divmod(m, 60)
+	return "%02d:%02d:%02d" % (h, m, s)
+
+
+def get_length(mp3file):
+	#try and open the file
+	try:
+		audio = MP3(mp3file)
+	except MutagenError:
+		pass
+
+	#return length in seconds
+	return int(audio.info.length)
+
+
 def tag_file(tags,mp3file):
 
 	#try and open the file
@@ -97,7 +114,7 @@ def tag_file(tags,mp3file):
 
 	#length in ms
 	audio.tags.add(mutagen.id3.TLEN(
-		text=str(int(audio.info.length*1000))
+		text=str(int(get_length(mp3file)*1000))
 			))
 
 	#add comment
@@ -159,11 +176,27 @@ def process_playlist(defaults,playlistConf):
 
 	fg = FeedGenerator()
 	fg.load_extension('podcast')
-	fg.podcast.itunes_category(conf['category'],conf['subcategory'])
+	#fg.load_extension('syndication')
 	fg.title(conf['title'])
 	fg.description(conf['description'])
-	fg.link(href=defaults['urlbase'], rel='self')
-
+	fg.podcast.itunes_summary(conf['description'])
+	fg.podcast.itunes_category(conf['category'],conf['subcategory'])
+	fg.link(
+		href='{}/{}/feed.xml'.format(defaults['urlbase'],conf['__name__']),
+		rel='self',
+		type='application/rss+xml')
+	if 'explicit' in conf:
+		ex = conf['explicit']
+	else:
+		ex = 'no'
+	fg.podcast.itunes_explicit(ex)
+	if 'language' in conf:
+		lan = conf['language']
+	else:
+		lan = 'en-US'
+	fg.language(lan)
+	#fg.syndication.update_period('hourly')
+	#fg.syndication.update_frequency(1)
 
 	for key, item in allitems.iteritems():
 		tags['vidinfo'] = item['snippet']
@@ -177,16 +210,30 @@ def process_playlist(defaults,playlistConf):
 		fe.id(vidId)
 		fe.title(tags['vidinfo']['title'])
 		fe.description(tags['vidinfo']['description'])
-		fe.enclosure(defaults['urlbase'] + conf['__name__'] + \
-			'/' + vidId +'.mp3',0,'audio/mpeg')
+		fe.enclosure(
+			url='{}/{}/{}.mp3'.format(
+				defaults['urlbase'] ,
+				conf['__name__'],
+				vidId),
+			length=0,
+			type='audio/mpeg')
 		fe.published(tags['vidinfo']['publishedAt'])
+
+		if 'duration' in tags['vidinfo']:
+			fe.podcast.itunes_duration(seconds_to_hms(tags['vidinfo']['duration']))
 
 		#skip downloading if we've already downloaded this one
 		if 'downloaded' in item and item['downloaded'] is True:
 			continue
 
+		if 'simulate' in defaults and defaults['simulate'] == 'True':
+			simulate = True
+		else:
+			simulate = False
+
+
 		ydl_opts = {
-			'simulate': False,
+			'simulate': simulate,
 			'quiet': True,
 			'nooverwrites': True,
 			'format': 'bestaudio/best',
@@ -201,13 +248,23 @@ def process_playlist(defaults,playlistConf):
 		}
 
 		try:
+			mp3file = '{}/{}.mp3'.format(plpath,vidId)
 			with youtube_dl.YoutubeDL(ydl_opts) as ydl:
 				ydl.download(['https://www.youtube.com/watch?v=%s' % (vidId)])
+
+			if not simulate:
 				allitems[key]['downloaded'] = True;
-				tag_file(tags,'{}/{}.mp3'.format(plpath,vidId))
+				tag_file(tags,mp3file)
+
+				if 'duration' not in item['snippet']:
+					allitems[key]['snippet']['duration'] = get_length(mp3file)
+					fe.podcast.itunes_duration(seconds_to_hms(allitems[key]['snippet']['duration']))
+
 
 		except youtube_dl.utils.DownloadError:
 			print "[Error] Video id %s \"%s\" does not exist." % (vidId, title)
+
+
 
 	#write the cache out
 	with gzip.open(plpath + '/.cache.json.gz', 'wb') as f:
