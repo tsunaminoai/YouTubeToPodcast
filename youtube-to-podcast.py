@@ -5,6 +5,7 @@ from feedgen.feed import FeedGenerator
 from mutagen.mp3 import MP3
 from mutagen import MutagenError
 from collections import OrderedDict
+from PIL import Image
 
 import dateutil.parser
 import mutagen.id3
@@ -15,7 +16,53 @@ import json
 import youtube_dl
 import urllib
 import gzip
+import scipy
+import scipy.misc
+import scipy.cluster
 
+def find_dominant_color(img):
+	#find the most dominant color in an image
+	tmp = img.resize((150,150))
+	test = scipy.misc.fromimage(tmp)
+	shape = test.shape
+	test = test.reshape(scipy.product(shape[:2]), shape[2])
+	codes, dist = scipy.cluster.vq.kmeans(test.astype(float), 5)
+	vecs, dist = scipy.cluster.vq.vq(test, codes)
+	counts, bins = scipy.histogram(vecs, len(codes))
+	index_max = scipy.argmax(counts)
+	peak = codes[index_max]
+	ret = list()
+	for c in peak:
+		ret.append(int(c))
+	return ret
+
+def square_cover(imgfile):
+	try:
+		thumb = Image.open(imgfile)
+	except IOError:
+		pass
+
+	#get the most prevelant color
+	r,b,g = find_dominant_color(thumb)
+
+	#create background with this color
+	background = Image.new('RGB',(1920,1920),(r,b,g))
+
+	#resize the original thumbnail
+	factor = 1920.0 / thumb.width
+	thumb = thumb.resize(
+		(int(thumb.width * factor), int(thumb.height * factor)))
+
+	#get the center ofset of the image
+	b_w,b_h = background.size
+	t_w,t_h = thumb.size
+	offset = ( ( b_w - t_w ) / 2 , ( b_h - t_h ) / 2 )
+
+	#place the original thumb into the new square image
+	background.paste(thumb,offset)
+
+	#save the new thumbnail
+	background.save(imgfile)
 
 def api_loop(cache,ytkey,listid):
 	url = 'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=%s&key=%s' % (listid , ytkey)
@@ -205,19 +252,21 @@ def process_playlist(defaults,playlistConf):
 
 		tags['basename'] = '{}/{}'.format(plpath,vidId)
 
+		uribase = '{}/{}/{}'.format(
+				defaults['urlbase'] ,
+				conf['__name__'],
+				vidId)
 
 		fe = fg.add_entry()
 		fe.id(vidId)
 		fe.title(tags['vidinfo']['title'])
 		fe.description(tags['vidinfo']['description'])
 		fe.enclosure(
-			url='{}/{}/{}.mp3'.format(
-				defaults['urlbase'] ,
-				conf['__name__'],
-				vidId),
+			url=uribase + '.mp3',
 			length=0,
 			type='audio/mpeg')
 		fe.published(tags['vidinfo']['publishedAt'])
+		fe.podcast.itunes_image(uribase + '.jpg')
 
 		if 'duration' in tags['vidinfo']:
 			fe.podcast.itunes_duration(seconds_to_hms(tags['vidinfo']['duration']))
@@ -259,6 +308,9 @@ def process_playlist(defaults,playlistConf):
 				if 'duration' not in item['snippet']:
 					allitems[key]['snippet']['duration'] = get_length(mp3file)
 					fe.podcast.itunes_duration(seconds_to_hms(allitems[key]['snippet']['duration']))
+
+				#create the square cover art for the feed
+				square_cover(tags['basename'] + '.jpg')
 
 
 		except youtube_dl.utils.DownloadError:
