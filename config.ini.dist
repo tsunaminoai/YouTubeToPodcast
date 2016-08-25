@@ -11,6 +11,11 @@ outputDir = output
 # (where is outputDir in relation to the webroot)
 urlBase = http://localhost/
 
+# create a base html index page in the document root
+#indexPage = False
+
+# title for the index page
+#indexTitle = YouTubeToPodcast Feed List
 
 # Playlist sections
 

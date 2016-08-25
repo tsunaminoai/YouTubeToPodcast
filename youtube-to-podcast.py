@@ -6,13 +6,16 @@ from mutagen.mp3 import MP3
 from mutagen import MutagenError
 from collections import OrderedDict
 from PIL import Image
+from dominate.tags import *
 
+import dominate
 import dateutil.parser
 import mutagen.id3
 import ConfigParser
 import os
 import sys
 import json
+import time
 import youtube_dl
 import urllib
 import gzip
@@ -107,7 +110,7 @@ def sortByPosition(cache):
 def seconds_to_hms(seconds):
 	m, s = divmod(seconds, 60)
 	h, m = divmod(m, 60)
-	return "%02d:%02d:%02d" % (h, m, s)
+	return '%02d:%02d:%02d' % (h, m, s)
 
 
 def get_length(mp3file):
@@ -188,6 +191,55 @@ def tag_file(tags,mp3file):
 	)
 	audio.save()
 
+def create_index(defaults,playlistConf):
+	conf = dict(playlistConf)
+
+	if 'indextitle' in defaults:
+		title = defaults['indextitle']
+	else:
+		title = 'YoutubeToPodcast Listing Page'
+	doc = dominate.document(title=title)
+
+	with doc.head:
+		link( rel='stylesheet',
+			href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css',
+			integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' ,
+			crossorigin='anonymous'
+			)
+		script( src='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js',
+			)
+		style(	'html{position:relative;min-height:100%;}\
+				body{margin-bottom:30px;margin-left:15px}\
+				.footer{position:absolute;bottom:0;width:100%;\
+				height:30px;background-color:#f5f5f5;}')
+
+	with doc:
+		with div(id='container'):
+			div(h1(title),cls='page-header')
+			div(h3('Available Feeds'))
+		with div(id='container').add(ul()):
+			for k, s in conf.iteritems():
+				if k == 'system':
+					continue
+				li(a( k,
+					href='%s/%s/feed.xml' % (defaults['urlbase'], k)))
+		with footer(cls='footer').add(div(cls='container')) as foot:
+			with foot.add(p(cls='text-muted')) as pa:
+				pa += 'Generated with '
+				pa += a('YouTubeToPodcast',href='https://github.com/tsunaminoai/YouTubeToPodcast')
+				pa += ' at '
+				pa += time.strftime('%A %B %d, %Y at %H:%M:%S')+'.'
+
+
+
+	try:
+		with open(defaults['outputdir'] + '/index.html','w') as f:
+			f.write(doc.render())
+	except OSError:
+		print 'Could not create index file.'
+		pass
+
+
 
 
 def process_playlist(defaults,playlistConf):
@@ -200,8 +252,8 @@ def process_playlist(defaults,playlistConf):
 		try:
 			os.makedirs(plpath)
 		except OSError:
-			print "Could not make output directory"
-			exit()
+			print 'Could not make output directory'
+			pass
 
 
 	# this is the list of all the times from the playlist.
@@ -314,7 +366,7 @@ def process_playlist(defaults,playlistConf):
 
 
 		except youtube_dl.utils.DownloadError:
-			print "[Error] Video id %s \"%s\" does not exist." % (vidId, title)
+			print '[Error] Video id %s \'%s\' does not exist.' % (vidId, title)
 
 
 
@@ -327,27 +379,27 @@ def process_playlist(defaults,playlistConf):
 
 def main():
 	if not os.path.isfile('config.ini'):
-		print "No config file found. Exiting."
+		print 'No config file found. Exiting.'
 		exit()
 
 	try:
 		config = ConfigParser.ConfigParser()
 		config.read('config.ini')
 	except:
-		print "what"
+		print 'what'
 		exit()
 
 	if config.has_section('system'):
 		defaults = dict(config._sections['system'])
 	else:
-		print "No 'System' section found in config file. Exiting."
+		print 'No "System" section found in config file. Exiting.'
 		exit ()
 
 	if not os.path.exists(defaults['outputdir']):
 		try:
 			os.makedirs(defaults['outputdir'])
 		except OSError:
-			print "Could not make output directory"
+			print 'Could not make output directory'
 			exit()
 
 	for section in config.sections():
@@ -358,7 +410,11 @@ def main():
 		process_playlist(defaults,
 				config._sections[section])
 
-if __name__ == "__main__":
+	if 'indexpage' in defaults and defaults['indexpage'] == 'True':
+		create_index(defaults,
+			config._sections)
+
+if __name__ == '__main__':
 	sys.exit(main())
 
 
