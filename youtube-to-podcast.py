@@ -206,18 +206,18 @@ def create_index(defaults,playlistConf):
 			integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' ,
 			crossorigin='anonymous'
 			)
-		script( src='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js',
-			)
+
 		style(	'html{position:relative;min-height:100%;}\
-				body{margin-bottom:30px;margin-left:15px}\
+				body{margin-bottom:30px;}\
+				.container{margin-left:15px;}\
 				.footer{position:absolute;bottom:0;width:100%;\
 				height:30px;background-color:#f5f5f5;}')
 
 	with doc:
-		with div(id='container'):
+		with div(cls='container'):
 			div(h1(title),cls='page-header')
 			div(h3('Available Feeds'))
-		with div(id='container').add(ul()):
+		with div(cls='container').add(ul()):
 			for k, s in conf.iteritems():
 				if k == 'system':
 					continue
